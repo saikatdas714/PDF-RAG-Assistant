@@ -68,8 +68,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Initial state: Chat disabled until PDF uploaded and indexed
+  // Initial state: Chat strictly disabled on page load / refresh until user uploads a document
   setChatEnabled(false);
+  window.addEventListener("pageshow", () => {
+    if (!isDocumentLoaded) {
+      setChatEnabled(false);
+    }
+  });
 
   // --------------------------------------------------------------------------
   // Model Switcher Integration
@@ -80,9 +85,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/models");
       if (!res.ok) return;
       const data = await res.json();
-      if (data.hasDocument) {
-        setChatEnabled(true);
-      }
       if (data.generationPriority && data.generationPriority.length > 0) {
         modelSelect.innerHTML = "";
         data.generationPriority.forEach((m) => {
