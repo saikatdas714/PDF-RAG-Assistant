@@ -4,6 +4,7 @@ const {
   embedContent,
   generateAnswer,
   generateAnswerStream,
+  getErrorDetails,
 } = require("../services/aiService");
 const {
   upsertEmbeddings,
@@ -78,7 +79,7 @@ async function handleUpload(req, res) {
     if (req.file && req.file.path && fs.existsSync(req.file.path)) {
       try { fs.unlinkSync(req.file.path); } catch (e) {}
     }
-    res.status(500).json({ error: error.message || "Failed to process PDF" });
+    res.status(500).json({ error: getErrorDetails(error) || "Failed to process PDF" });
   }
 }
 
@@ -105,17 +106,20 @@ async function handleAsk(req, res) {
       .filter((t) => t.length > 0)
       .join("\n\n");
 
-    const answer = await generateAnswer(question, context);
+    const result = await generateAnswer(question, context);
+    const answer = typeof result === "string" ? result : result.answer;
+    const modelUsed = result?.modelUsed || "gemini";
 
-    console.log("Generated Answer:", answer);
+    console.log(`Generated Answer (via ${modelUsed}):`, answer);
     res.json({
       question,
       context,
       answer,
+      modelUsed,
     });
   } catch (error) {
     console.error("Error answering question:", error);
-    res.status(500).json({ error: error.message || "Failed to generate answer" });
+    res.status(500).json({ error: getErrorDetails(error) || "Failed to generate answer" });
   }
 }
 
@@ -151,7 +155,12 @@ async function handleAskStream(req, res) {
     res.write(`event: context\ndata: ${JSON.stringify({ context })}\n\n`);
 
     // 2. Stream generation chunks from Gemini
-    const stream = await generateAnswerStream(question, context);
+    const streamResult = await generateAnswerStream(question, context);
+    const stream = streamResult?.stream || streamResult;
+    const modelUsed = streamResult?.modelUsed || "gemini";
+
+    res.write(`event: model\ndata: ${JSON.stringify({ modelUsed })}\n\n`);
+
     for await (const chunk of stream) {
       if (chunk.text) {
         res.write(`event: chunk\ndata: ${JSON.stringify({ text: chunk.text })}\n\n`);
@@ -159,14 +168,15 @@ async function handleAskStream(req, res) {
     }
 
     // 3. Send done event
-    res.write(`event: done\ndata: {}\n\n`);
+    res.write(`event: done\ndata: ${JSON.stringify({ modelUsed })}\n\n`);
     res.end();
   } catch (error) {
     console.error("Error in streaming response:", error);
+    const friendlyError = getErrorDetails(error) || "Failed to stream answer";
     if (!res.headersSent) {
-      res.status(500).json({ error: error.message || "Failed to stream answer" });
+      res.status(500).json({ error: friendlyError });
     } else {
-      res.write(`event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.write(`event: error\ndata: ${JSON.stringify({ error: friendlyError })}\n\n`);
       res.end();
     }
   }
