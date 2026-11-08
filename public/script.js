@@ -43,11 +43,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const clearChatBtn = document.getElementById("clearChatBtn");
   const endSessionBtn = document.getElementById("endSessionBtn");
   const modelSelect = document.getElementById("modelSelect");
-  const chatFooter = document.getElementById("chatFooter");
-  const chatLockOverlay = document.getElementById("chatLockOverlay");
-  const unlockUploadBtn = document.getElementById("unlockUploadBtn");
-  const chatLockDot = document.getElementById("chatLockDot");
-
   let activeFile = null;
   let sessionPointIds = [];
   let isDocumentLoaded = false;
@@ -55,21 +50,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function setChatEnabled(enabled) {
     isDocumentLoaded = !!enabled;
 
-    if (chatFooter) {
-      chatFooter.classList.toggle("locked", !enabled);
-    }
-    if (chatLockOverlay) {
-      chatLockOverlay.style.display = enabled ? "none" : "flex";
-    }
-    if (chatLockDot) {
-      chatLockDot.style.display = enabled ? "none" : "inline-block";
-    }
-
     if (questionInput) {
       questionInput.disabled = !enabled;
       questionInput.placeholder = enabled
         ? "Ask about the PDF... (Enter to send)"
-        : "Upload a PDF document first to start asking questions...";
+        : "Upload a PDF document first to ask questions...";
     }
     if (sendBtn) {
       sendBtn.disabled = !enabled;
@@ -81,13 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
         docStatusDot.classList.remove("active");
       }
     }
-  }
-
-  if (unlockUploadBtn) {
-    unlockUploadBtn.addEventListener("click", () => {
-      switchMobileTab("sidebarView");
-      if (fileInput) fileInput.click();
-    });
   }
 
   // Initial state: Chat disabled until PDF uploaded and indexed
@@ -161,12 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (tabDocBtn && tabChatBtn) {
     tabDocBtn.addEventListener("click", () => switchMobileTab("sidebarView"));
-    tabChatBtn.addEventListener("click", () => {
-      switchMobileTab("chatView");
-      if (!isDocumentLoaded) {
-        appendSystemNotification("🔒 AI Chat is locked. Upload a PDF first to begin.");
-      }
-    });
+    tabChatBtn.addEventListener("click", () => switchMobileTab("chatView"));
   }
 
   // --------------------------------------------------------------------------
