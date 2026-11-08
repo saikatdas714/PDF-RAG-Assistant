@@ -1,5 +1,19 @@
 const fs = require("fs");
-const { PDFParse } = require("pdf-parse");
+
+let PDFParseClass = null;
+
+function getPDFParser() {
+  if (!PDFParseClass) {
+    try {
+      const pdfModule = require("pdf-parse");
+      PDFParseClass = pdfModule.PDFParse || pdfModule;
+    } catch (err) {
+      console.error("Failed to load pdf-parse:", err);
+      throw new Error("PDF parser dependency failed to load: " + err.message);
+    }
+  }
+  return PDFParseClass;
+}
 
 /**
  * Extract text content from a PDF Buffer or file path
@@ -16,7 +30,8 @@ async function extractTextFromPDF(input) {
     throw new Error("Invalid PDF input: expected a Buffer or file path");
   }
 
-  const parser = new PDFParse({ data: buffer });
+  const Parser = getPDFParser();
+  const parser = new Parser({ data: buffer });
   const data = await parser.getText();
   return data.text || "";
 }

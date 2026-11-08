@@ -2,7 +2,27 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/uploads",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/ask",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/ask-stream",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/clear-session",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/(.*)",
       "destination": "/api/index.js"
     }
   ]

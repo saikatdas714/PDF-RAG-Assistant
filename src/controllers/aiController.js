@@ -1,6 +1,10 @@
 const fs = require("fs");
 const { extractTextFromPDF, chunkText } = require("../services/pdfService");
-const { embedContent, generateAnswer } = require("../services/aiService");
+const {
+  embedContent,
+  generateAnswer,
+  generateAnswerStream,
+} = require("../services/aiService");
 const {
   upsertEmbeddings,
   searchSimilar,
@@ -116,6 +120,59 @@ async function handleAsk(req, res) {
 }
 
 /**
+ * Real-time SSE streaming question answering handler
+ */
+async function handleAskStream(req, res) {
+  try {
+    const question = req.body.question;
+    if (!question) {
+      return res.status(400).json({ error: "Missing 'question' in request body" });
+    }
+
+    const questionEmbed = await embedContent(question);
+    const searchResult = await searchSimilar(questionEmbed, 3);
+
+    const points = searchResult.points || [];
+    if (points.length === 0) {
+      return res.status(404).json({ error: "No matching context found in vector database" });
+    }
+
+    const context = points
+      .map((p) => (p.payload && p.payload.text ? p.payload.text : ""))
+      .filter((t) => t.length > 0)
+      .join("\n\n");
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    if (res.flushHeaders) res.flushHeaders();
+
+    // 1. Send matched context first
+    res.write(`event: context\ndata: ${JSON.stringify({ context })}\n\n`);
+
+    // 2. Stream generation chunks from Gemini
+    const stream = await generateAnswerStream(question, context);
+    for await (const chunk of stream) {
+      if (chunk.text) {
+        res.write(`event: chunk\ndata: ${JSON.stringify({ text: chunk.text })}\n\n`);
+      }
+    }
+
+    // 3. Send done event
+    res.write(`event: done\ndata: {}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error("Error in streaming response:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || "Failed to stream answer" });
+    } else {
+      res.write(`event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+  }
+}
+
+/**
  * Delete generated index/points from Qdrant when session ends
  */
 async function handleClearSession(req, res) {
@@ -148,5 +205,6 @@ module.exports = {
   handleHealthCheck,
   handleUpload,
   handleAsk,
+  handleAskStream,
   handleClearSession,
 };

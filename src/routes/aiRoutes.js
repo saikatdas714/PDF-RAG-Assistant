@@ -4,6 +4,7 @@ const {
   handleHealthCheck,
   handleUpload,
   handleAsk,
+  handleAskStream,
   handleClearSession,
 } = require("../controllers/aiController");
 
@@ -17,6 +18,9 @@ router.post("/uploads", upload.single("pdf"), handleUpload);
 
 // Question answering (supports JSON & multipart)
 router.post("/ask", upload.single("pdf"), handleAsk);
+
+// Question answering with real-time SSE streaming
+router.post("/ask-stream", upload.single("pdf"), handleAskStream);
 
 // Delete session index from Qdrant
 router.post("/clear-session", express.text({ type: "*/*" }), handleClearSession);
