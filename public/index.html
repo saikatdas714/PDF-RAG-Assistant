@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Project AI - PDF RAG Assistant</title>
   
   <!-- Google Fonts: Inter -->
@@ -24,10 +24,10 @@
         </svg>
       </div>
       <div class="brand-text">
-        <h1 class="brand-title">
-          PDF RAG Assistant
+        <div class="brand-title-row">
+          <h1 class="brand-title">PDF RAG</h1>
           <span class="tag-badge">Gemini + Qdrant</span>
-        </h1>
+        </div>
         <p class="brand-subtitle">Vector semantic search & contextual document Q&A</p>
       </div>
     </div>
@@ -38,7 +38,7 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
         </svg>
-        <span class="btn-text">Reset Session</span>
+        <span class="btn-text">Reset</span>
       </button>
 
       <div class="status-badge" title="Backend API status">
@@ -54,14 +54,14 @@
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
-      <span>1. Document & Upload</span>
+      <span class="mobile-tab-text">Document</span>
       <span class="mobile-indicator" id="docStatusDot"></span>
     </button>
     <button class="mobile-nav-btn" id="tabChatBtn" data-target="chatView">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
       </svg>
-      <span>2. AI Assistant</span>
+      <span class="mobile-tab-text">AI Chat</span>
     </button>
   </nav>
 
@@ -169,7 +169,7 @@
         <div class="chat-header">
           <div class="chat-header-title">
             <span class="chat-indicator"></span>
-            <span>Ask AI Document Assistant</span>
+            <span>Ask AI Assistant</span>
           </div>
           <div class="chat-header-actions">
             <button id="clearChatBtn" class="btn-ghost" title="Clear conversation history">
@@ -214,7 +214,7 @@
               <textarea
                 id="questionInput"
                 class="chat-textarea"
-                placeholder="Ask anything about the document... (Enter to send, Shift+Enter for new line)"
+                placeholder="Ask about the PDF... (Enter to send)"
                 rows="1"
               ></textarea>
             </div>
