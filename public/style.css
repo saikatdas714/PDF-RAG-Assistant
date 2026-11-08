@@ -205,6 +205,45 @@ html, body {
   flex-shrink: 0;
 }
 
+.model-select-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0 0.5rem 0 0.4rem;
+  height: 32px;
+  gap: 0.35rem;
+  transition: var(--transition);
+}
+
+.model-select-wrapper:hover {
+  border-color: var(--primary);
+}
+
+.model-select-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.model-select {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  font-size: 0.72rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+
+.model-select option {
+  background: #0f172a;
+  color: var(--text-primary);
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -1076,7 +1115,46 @@ html, body {
     height: 12px;
   }
 
-  .status-badge {
+  .model-select-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0 0.5rem 0 0.4rem;
+  height: 32px;
+  gap: 0.35rem;
+  transition: var(--transition);
+}
+
+.model-select-wrapper:hover {
+  border-color: var(--primary);
+}
+
+.model-select-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.model-select {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  font-size: 0.72rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+
+.model-select option {
+  background: #0f172a;
+  color: var(--text-primary);
+}
+
+.status-badge {
     height: 28px;
     padding: 0.25rem 0.45rem;
     font-size: 0.65rem;

@@ -8,6 +8,10 @@ const modelCooldowns = new Map();
 // Default request timeout in milliseconds before auto-switching
 const REQUEST_TIMEOUT_MS = parseInt(process.env.GEMINI_TIMEOUT_MS, 10) || 10000;
 
+// Runtime mutable priority lists
+let activeGenerationModels = [...config.geminiGenerationModels];
+let activeEmbeddingModels = [...config.geminiEmbeddingModels];
+
 /**
  * Clean and normalize a model string to ensure it is accepted by Google GenAI SDK
  * (removes quotes, removes leading 'models/' if present, trims whitespace)
@@ -37,6 +41,73 @@ function normalizeModelList(input) {
     .filter((m) => m.length > 0);
 
   return [...new Set(flat)];
+}
+
+/**
+ * Method to manually switch the active generation model at runtime
+ * @param {string} newModel - Name of the model to set as active primary
+ * @returns {{ success: boolean, activeModel: string, priorityList: string[] }}
+ */
+function switchModel(newModel) {
+  const clean = sanitizeModelName(newModel);
+  if (!clean) {
+    throw new Error("Invalid model name provided");
+  }
+
+  // Place newly selected model at index 0 of the priority list
+  activeGenerationModels = [clean, ...activeGenerationModels.filter((m) => m !== clean)];
+  // Clear any active cooldown so user can immediately use it
+  modelCooldowns.delete(clean);
+
+  console.log(`[ModelSwitcher] ✓ Active generation model switched to '${clean}'.`);
+  return {
+    success: true,
+    activeModel: clean,
+    priorityList: [...activeGenerationModels],
+  };
+}
+
+/**
+ * Method to manually switch the active embedding model at runtime
+ * @param {string} newModel - Name of the model to set as active embedding primary
+ * @returns {{ success: boolean, activeModel: string, priorityList: string[] }}
+ */
+function switchEmbeddingModel(newModel) {
+  const clean = sanitizeModelName(newModel);
+  if (!clean) {
+    throw new Error("Invalid embedding model name provided");
+  }
+
+  activeEmbeddingModels = [clean, ...activeEmbeddingModels.filter((m) => m !== clean)];
+  modelCooldowns.delete(clean);
+
+  console.log(`[ModelSwitcher] ✓ Active embedding model switched to '${clean}'.`);
+  return {
+    success: true,
+    activeModel: clean,
+    priorityList: [...activeEmbeddingModels],
+  };
+}
+
+/**
+ * Get current active models and cooldown status
+ */
+function getModelStatus() {
+  const now = Date.now();
+  const cooldownInfo = {};
+  for (const [m, until] of modelCooldowns.entries()) {
+    if (until > now) {
+      cooldownInfo[m] = `${Math.round((until - now) / 1000)}s cooldown`;
+    }
+  }
+
+  return {
+    activeGenerationModel: activeGenerationModels[0],
+    generationPriority: [...activeGenerationModels],
+    activeEmbeddingModel: activeEmbeddingModels[0],
+    embeddingPriority: [...activeEmbeddingModels],
+    cooldowns: cooldownInfo,
+  };
 }
 
 /**
@@ -168,8 +239,8 @@ function markModelSuccess(model) {
 async function embedContent(text, preferredModel) {
   const preferredList = normalizeModelList(preferredModel);
   const baseCandidates = preferredList.length > 0
-    ? [...preferredList, ...config.geminiEmbeddingModels.filter((m) => !preferredList.includes(m))]
-    : config.geminiEmbeddingModels;
+    ? [...preferredList, ...activeEmbeddingModels.filter((m) => !preferredList.includes(m))]
+    : activeEmbeddingModels;
 
   const candidates = getOrderedCandidates(baseCandidates);
   let lastError;
@@ -216,8 +287,8 @@ async function generateAnswer(question, context, preferredModel) {
   const prompt = `define me ${question} using content${context} give answer less then 50 words`;
   const preferredList = normalizeModelList(preferredModel);
   const baseCandidates = preferredList.length > 0
-    ? [...preferredList, ...config.geminiGenerationModels.filter((m) => !preferredList.includes(m))]
-    : config.geminiGenerationModels;
+    ? [...preferredList, ...activeGenerationModels.filter((m) => !preferredList.includes(m))]
+    : activeGenerationModels;
 
   const candidates = getOrderedCandidates(baseCandidates);
   let lastError;
@@ -270,8 +341,8 @@ async function generateAnswerStream(question, context, preferredModel) {
   const prompt = `define me ${question} using content${context} give answer less then 50 words`;
   const preferredList = normalizeModelList(preferredModel);
   const baseCandidates = preferredList.length > 0
-    ? [...preferredList, ...config.geminiGenerationModels.filter((m) => !preferredList.includes(m))]
-    : config.geminiGenerationModels;
+    ? [...preferredList, ...activeGenerationModels.filter((m) => !preferredList.includes(m))]
+    : activeGenerationModels;
 
   const candidates = getOrderedCandidates(baseCandidates);
   let lastError;
@@ -317,6 +388,9 @@ module.exports = {
   embedContent,
   generateAnswer,
   generateAnswerStream,
+  switchModel,
+  switchEmbeddingModel,
+  getModelStatus,
   getOrderedCandidates,
   markModelCooldown,
   markModelSuccess,

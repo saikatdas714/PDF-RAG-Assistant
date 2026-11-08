@@ -42,9 +42,55 @@ document.addEventListener("DOMContentLoaded", () => {
   const sendSpinner = document.getElementById("sendSpinner");
   const clearChatBtn = document.getElementById("clearChatBtn");
   const endSessionBtn = document.getElementById("endSessionBtn");
+  const modelSelect = document.getElementById("modelSelect");
 
   let activeFile = null;
   let sessionPointIds = [];
+
+  // --------------------------------------------------------------------------
+  // Model Switcher Integration
+  // --------------------------------------------------------------------------
+  async function syncModelList() {
+    if (!modelSelect) return;
+    try {
+      const res = await fetch("/models");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.generationPriority && data.generationPriority.length > 0) {
+        modelSelect.innerHTML = "";
+        data.generationPriority.forEach((m) => {
+          const opt = document.createElement("option");
+          opt.value = m;
+          opt.textContent = m;
+          if (m === data.activeGenerationModel) opt.selected = true;
+          modelSelect.appendChild(opt);
+        });
+      }
+    } catch (_) {}
+  }
+  syncModelList();
+
+  if (modelSelect) {
+    modelSelect.addEventListener("change", async () => {
+      const selectedModel = modelSelect.value;
+      try {
+        const res = await fetch("/switch-model", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: selectedModel }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          appendSystemNotification(`Active model switched to ${data.activeGenerationModel}`);
+        } else {
+          alert("Failed to switch model: " + (data.error || "Unknown error"));
+          syncModelList();
+        }
+      } catch (err) {
+        alert("Error connecting to server: " + err.message);
+      }
+    });
+  }
 
   // --------------------------------------------------------------------------
   // Mobile View Navigation (Switch between Document and Chat on Mobile)
@@ -258,13 +304,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({
+          question,
+          model: modelSelect ? modelSelect.value : undefined,
+        }),
       });
 
       const data = await response.json();
       removeElement(loadingId);
 
       if (response.ok) {
+        if (data.modelUsed && modelSelect && modelSelect.value !== data.modelUsed) {
+          modelSelect.value = data.modelUsed;
+          appendSystemNotification(`Auto-switched to available model: ${data.modelUsed}`);
+        }
         appendMessage("ai", data.answer || "No response generated.", data.context);
       } else {
         appendMessage("ai", `⚠️ Error: ${data.error || "Unable to retrieve answer."}`);

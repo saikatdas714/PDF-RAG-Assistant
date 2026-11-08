@@ -6,12 +6,19 @@ const {
   handleAsk,
   handleAskStream,
   handleClearSession,
+  handleGetModels,
+  handleSwitchModel,
 } = require("../controllers/aiController");
 
 const router = express.Router();
 
 // Health check endpoint
 router.get("/health", handleHealthCheck);
+
+// Model switcher & status endpoints
+router.get("/models", handleGetModels);
+router.post("/switch-model", handleSwitchModel);
+router.post("/models", handleSwitchModel);
 
 // PDF upload & indexing
 router.post("/uploads", upload.single("pdf"), handleUpload);

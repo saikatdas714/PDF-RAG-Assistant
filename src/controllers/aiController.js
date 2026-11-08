@@ -4,6 +4,9 @@ const {
   embedContent,
   generateAnswer,
   generateAnswerStream,
+  switchModel,
+  switchEmbeddingModel,
+  getModelStatus,
   getErrorDetails,
 } = require("../services/aiService");
 const {
@@ -106,9 +109,10 @@ async function handleAsk(req, res) {
       .filter((t) => t.length > 0)
       .join("\n\n");
 
-    const result = await generateAnswer(question, context);
+    const requestedModel = req.body.model;
+    const result = await generateAnswer(question, context, requestedModel);
     const answer = typeof result === "string" ? result : result.answer;
-    const modelUsed = result?.modelUsed || "gemini";
+    const modelUsed = result?.modelUsed || requestedModel || "gemini";
 
     console.log(`Generated Answer (via ${modelUsed}):`, answer);
     res.json({
@@ -155,9 +159,10 @@ async function handleAskStream(req, res) {
     res.write(`event: context\ndata: ${JSON.stringify({ context })}\n\n`);
 
     // 2. Stream generation chunks from Gemini
-    const streamResult = await generateAnswerStream(question, context);
+    const requestedModel = req.body.model;
+    const streamResult = await generateAnswerStream(question, context, requestedModel);
     const stream = streamResult?.stream || streamResult;
-    const modelUsed = streamResult?.modelUsed || "gemini";
+    const modelUsed = streamResult?.modelUsed || requestedModel || "gemini";
 
     res.write(`event: model\ndata: ${JSON.stringify({ modelUsed })}\n\n`);
 
@@ -211,10 +216,57 @@ async function handleClearSession(req, res) {
   }
 }
 
+/**
+ * Get active and available models status
+ */
+function handleGetModels(req, res) {
+  try {
+    const status = getModelStatus();
+    res.json({
+      success: true,
+      ...status,
+    });
+  } catch (error) {
+    res.status(500).json({ error: getErrorDetails(error) });
+  }
+}
+
+/**
+ * Switch active model at runtime
+ */
+function handleSwitchModel(req, res) {
+  try {
+    const { model, embeddingModel } = req.body || {};
+    let result = {};
+
+    if (model) {
+      result = switchModel(model);
+    }
+    if (embeddingModel) {
+      result.embedding = switchEmbeddingModel(embeddingModel);
+    }
+
+    if (!model && !embeddingModel) {
+      return res.status(400).json({ error: "Missing 'model' or 'embeddingModel' in request body" });
+    }
+
+    res.json({
+      success: true,
+      message: model ? `Successfully switched active generation model to '${result.activeModel}'` : "Switched embedding model",
+      ...getModelStatus(),
+    });
+  } catch (error) {
+    console.error("Error switching model:", error);
+    res.status(400).json({ error: getErrorDetails(error) });
+  }
+}
+
 module.exports = {
   handleHealthCheck,
   handleUpload,
   handleAsk,
   handleAskStream,
   handleClearSession,
+  handleGetModels,
+  handleSwitchModel,
 };
