@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded Brand Base -->
+  <rect width="32" height="32" rx="7" fill="url(#brandGrad)"/>
+  
+  <!-- Document Shape -->
+  <path d="M10 6h7l5 5v14a1.5 1.5 0 0 1-1.5 1.5h-10.5a1.5 1.5 0 0 1-1.5-1.5V7.5A1.5 1.5 0 0 1 10 6z" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Fold Corner -->
+  <path d="M17 6v5h5" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Text/Vector Lines -->
+  <line x1="12.5" y1="15.5" x2="19.5" y2="15.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="12.5" y1="19.5" x2="17.5" y2="19.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

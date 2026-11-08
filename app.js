@@ -9,8 +9,8 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Silence favicon requests
-app.get("/favicon.ico", (req, res) => res.status(204).end());
+// Favicon support
+app.get("/favicon.ico", (req, res) => res.redirect(301, "/favicon.svg"));
 
 // Serve static frontend UI from public/
 app.use(express.static(path.join(__dirname, "public")));
