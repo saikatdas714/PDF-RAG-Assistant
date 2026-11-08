@@ -9,6 +9,37 @@ const modelCooldowns = new Map();
 const REQUEST_TIMEOUT_MS = parseInt(process.env.GEMINI_TIMEOUT_MS, 10) || 10000;
 
 /**
+ * Clean and normalize a model string to ensure it is accepted by Google GenAI SDK
+ * (removes quotes, removes leading 'models/' if present, trims whitespace)
+ * @param {string} model
+ * @returns {string}
+ */
+function sanitizeModelName(model) {
+  if (!model || typeof model !== "string") return "";
+  let clean = model.trim().replace(/^['"]|['"]$/g, "");
+  if (clean.startsWith("models/")) {
+    clean = clean.replace(/^models\//, "");
+  }
+  return clean;
+}
+
+/**
+ * Normalizes an array or comma-separated string into a flat array of clean unique model names
+ * @param {string[]|string} input
+ * @returns {string[]}
+ */
+function normalizeModelList(input) {
+  if (!input) return [];
+  const rawList = Array.isArray(input) ? input : String(input).split(",");
+  const flat = rawList
+    .flatMap((item) => (typeof item === "string" ? item.split(",") : item))
+    .map(sanitizeModelName)
+    .filter((m) => m.length > 0);
+
+  return [...new Set(flat)];
+}
+
+/**
  * Wraps a promise with a timeout
  * @param {Promise<any>} promise
  * @param {number} ms
@@ -44,11 +75,11 @@ function getErrorDetails(error) {
     try {
       const parsed = JSON.parse(msg);
       if (parsed.error?.message) {
-        return parsed.error.message;
+        return parsed.error.message.trim();
       }
     } catch (_) {}
   }
-  return msg;
+  return msg.trim();
 }
 
 /**
@@ -64,6 +95,7 @@ function shouldSwitchModel(error) {
     status === 503 ||
     status === 429 ||
     status === 404 ||
+    status === 400 ||
     status === 500 ||
     status === 504 ||
     msg.includes("503") ||
@@ -73,6 +105,7 @@ function shouldSwitchModel(error) {
     msg.includes("rate limit") ||
     msg.includes("no longer available") ||
     msg.includes("not found") ||
+    msg.includes("unexpected model name") ||
     msg.includes("timed out") ||
     msg.includes("timeout") ||
     msg.includes("econnreset") ||
@@ -86,11 +119,12 @@ function shouldSwitchModel(error) {
  * @returns {string[]}
  */
 function getOrderedCandidates(models) {
+  const normalized = normalizeModelList(models);
   const now = Date.now();
   const available = [];
   const inCooldown = [];
 
-  for (const m of models) {
+  for (const m of normalized) {
     const cooldownUntil = modelCooldowns.get(m) || 0;
     if (now < cooldownUntil) {
       inCooldown.push(m);
@@ -100,7 +134,7 @@ function getOrderedCandidates(models) {
   }
 
   // If all candidates are in cooldown, try them in their original priority order
-  return available.length > 0 ? [...available, ...inCooldown] : [...models];
+  return available.length > 0 ? [...available, ...inCooldown] : [...normalized];
 }
 
 /**
@@ -108,7 +142,10 @@ function getOrderedCandidates(models) {
  * @param {string} model
  */
 function markModelCooldown(model) {
-  modelCooldowns.set(model, Date.now() + MODEL_COOLDOWN_MS);
+  const clean = sanitizeModelName(model);
+  if (clean) {
+    modelCooldowns.set(clean, Date.now() + MODEL_COOLDOWN_MS);
+  }
 }
 
 /**
@@ -116,18 +153,22 @@ function markModelCooldown(model) {
  * @param {string} model
  */
 function markModelSuccess(model) {
-  modelCooldowns.delete(model);
+  const clean = sanitizeModelName(model);
+  if (clean) {
+    modelCooldowns.delete(clean);
+  }
 }
 
 /**
  * Generate embedding vector with automatic fallback
  * @param {string} text
- * @param {string} [preferredModel]
+ * @param {string|string[]} [preferredModel]
  * @returns {Promise<number[]>}
  */
 async function embedContent(text, preferredModel) {
-  const baseCandidates = preferredModel
-    ? [preferredModel, ...config.geminiEmbeddingModels.filter((m) => m !== preferredModel)]
+  const preferredList = normalizeModelList(preferredModel);
+  const baseCandidates = preferredList.length > 0
+    ? [...preferredList, ...config.geminiEmbeddingModels.filter((m) => !preferredList.includes(m))]
     : config.geminiEmbeddingModels;
 
   const candidates = getOrderedCandidates(baseCandidates);
@@ -168,13 +209,14 @@ async function embedContent(text, preferredModel) {
  * Generate answer using context with automatic model switching
  * @param {string} question
  * @param {string} context
- * @param {string} [preferredModel]
+ * @param {string|string[]} [preferredModel]
  * @returns {Promise<{ answer: string, modelUsed: string }>}
  */
 async function generateAnswer(question, context, preferredModel) {
   const prompt = `define me ${question} using content${context} give answer less then 50 words`;
-  const baseCandidates = preferredModel
-    ? [preferredModel, ...config.geminiGenerationModels.filter((m) => m !== preferredModel)]
+  const preferredList = normalizeModelList(preferredModel);
+  const baseCandidates = preferredList.length > 0
+    ? [...preferredList, ...config.geminiGenerationModels.filter((m) => !preferredList.includes(m))]
     : config.geminiGenerationModels;
 
   const candidates = getOrderedCandidates(baseCandidates);
@@ -221,13 +263,14 @@ async function generateAnswer(question, context, preferredModel) {
  * Generate streaming answer using context with automatic model switching
  * @param {string} question
  * @param {string} context
- * @param {string} [preferredModel]
+ * @param {string|string[]} [preferredModel]
  * @returns {Promise<{ stream: AsyncIterable<any>, modelUsed: string }>}
  */
 async function generateAnswerStream(question, context, preferredModel) {
   const prompt = `define me ${question} using content${context} give answer less then 50 words`;
-  const baseCandidates = preferredModel
-    ? [preferredModel, ...config.geminiGenerationModels.filter((m) => m !== preferredModel)]
+  const preferredList = normalizeModelList(preferredModel);
+  const baseCandidates = preferredList.length > 0
+    ? [...preferredList, ...config.geminiGenerationModels.filter((m) => !preferredList.includes(m))]
     : config.geminiGenerationModels;
 
   const candidates = getOrderedCandidates(baseCandidates);
@@ -278,4 +321,6 @@ module.exports = {
   markModelCooldown,
   markModelSuccess,
   getErrorDetails,
+  sanitizeModelName,
+  normalizeModelList,
 };

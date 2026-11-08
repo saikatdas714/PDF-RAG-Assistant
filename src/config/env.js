@@ -10,7 +10,7 @@ function parseModelList(envValue, defaultList) {
   if (!envValue) return defaultList;
   const list = envValue
     .split(",")
-    .map((m) => m.trim())
+    .map((m) => m.trim().replace(/^['"]|['"]$/g, ""))
     .filter(Boolean);
   return list.length > 0 ? list : defaultList;
 }
@@ -27,15 +27,25 @@ const defaultEmbeddingModels = [
   "gemini-embedding-001",
 ];
 
+const rawGenModel = (process.env.GEMINI_GENERATION_MODEL || defaultGenerationModels[0])
+  .split(",")[0]
+  .trim()
+  .replace(/^['"]|['"]$/g, "");
+
+const rawEmbedModel = (process.env.GEMINI_EMBEDDING_MODEL || defaultEmbeddingModels[0])
+  .split(",")[0]
+  .trim()
+  .replace(/^['"]|['"]$/g, "");
+
 const config = {
   port: process.env.PORT || 3000,
   geminiApiKey: process.env.GEMINI_API_KEY,
-  geminiEmbeddingModel: process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-2",
+  geminiEmbeddingModel: rawEmbedModel,
   geminiEmbeddingModels: parseModelList(
     process.env.GEMINI_EMBEDDING_MODELS || process.env.GEMINI_EMBEDDING_MODEL,
     defaultEmbeddingModels
   ),
-  geminiGenerationModel: process.env.GEMINI_GENERATION_MODEL || defaultGenerationModels[0],
+  geminiGenerationModel: rawGenModel,
   geminiGenerationModels: parseModelList(
     process.env.GEMINI_GENERATION_MODELS || process.env.GEMINI_GENERATION_MODEL,
     defaultGenerationModels
