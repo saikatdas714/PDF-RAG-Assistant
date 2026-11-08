@@ -16,6 +16,7 @@ const {
   deletePoints,
   clearCollection,
   getAutoDeleteStatus,
+  getPointsCount,
 } = require("../services/qdrantService");
 
 /**
@@ -99,6 +100,14 @@ async function handleAsk(req, res) {
       return res.status(400).json({ error: "Missing 'question' in request body" });
     }
 
+    // Verify a document has been uploaded and indexed
+    const pointsCount = await getPointsCount();
+    if (pointsCount === 0) {
+      return res.status(400).json({
+        error: "Please upload and extract a PDF document first before asking questions. No document is currently indexed in the vector database.",
+      });
+    }
+
     const questionEmbed = await embedContent(question);
     const searchResult = await searchSimilar(questionEmbed, 3);
 
@@ -140,6 +149,14 @@ async function handleAskStream(req, res) {
     const question = req.body.question;
     if (!question) {
       return res.status(400).json({ error: "Missing 'question' in request body" });
+    }
+
+    // Verify a document has been uploaded and indexed
+    const pointsCount = await getPointsCount();
+    if (pointsCount === 0) {
+      return res.status(400).json({
+        error: "Please upload and extract a PDF document first before asking questions. No document is currently indexed in the vector database.",
+      });
     }
 
     const questionEmbed = await embedContent(question);
@@ -226,11 +243,14 @@ async function handleClearSession(req, res) {
 /**
  * Get active and available models status
  */
-function handleGetModels(req, res) {
+async function handleGetModels(req, res) {
   try {
     const status = getModelStatus();
+    const pointsCount = await getPointsCount();
     res.json({
       success: true,
+      pointsCount,
+      hasDocument: pointsCount > 0,
       ...status,
     });
   } catch (error) {

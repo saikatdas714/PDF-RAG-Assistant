@@ -144,6 +144,20 @@ async function clearCollection(collectionName = config.qdrantCollection) {
   });
 }
 
+/**
+ * Get total number of points in the Qdrant collection
+ * @param {string} [collectionName]
+ * @returns {Promise<number>}
+ */
+async function getPointsCount(collectionName = config.qdrantCollection) {
+  try {
+    const info = await qdrantClient.getCollection(collectionName);
+    return info.points_count || 0;
+  } catch (err) {
+    return 0;
+  }
+}
+
 module.exports = {
   upsertEmbeddings,
   searchSimilar,
@@ -152,4 +166,5 @@ module.exports = {
   scheduleAutoDelete,
   cancelAutoDeleteTimer,
   getAutoDeleteStatus,
+  getPointsCount,
 };

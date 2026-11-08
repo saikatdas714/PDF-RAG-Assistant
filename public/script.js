@@ -46,6 +46,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let activeFile = null;
   let sessionPointIds = [];
+  let isDocumentLoaded = false;
+
+  function setChatEnabled(enabled) {
+    isDocumentLoaded = !!enabled;
+    if (questionInput) {
+      questionInput.disabled = !enabled;
+      questionInput.placeholder = enabled
+        ? "Ask about the PDF... (Enter to send)"
+        : "Upload a PDF document first to start asking questions...";
+    }
+    if (sendBtn) {
+      sendBtn.disabled = !enabled;
+    }
+    if (docStatusDot) {
+      if (enabled) {
+        docStatusDot.classList.add("active");
+      } else {
+        docStatusDot.classList.remove("active");
+      }
+    }
+  }
+
+  // Initial state: Chat disabled until PDF uploaded and indexed
+  setChatEnabled(false);
 
   // --------------------------------------------------------------------------
   // Model Switcher Integration
@@ -56,6 +80,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/models");
       if (!res.ok) return;
       const data = await res.json();
+      if (data.hasDocument) {
+        setChatEnabled(true);
+      }
       if (data.generationPriority && data.generationPriority.length > 0) {
         modelSelect.innerHTML = "";
         data.generationPriority.forEach((m) => {
@@ -260,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
         textPreview.textContent = rawText;
         charCounter.textContent = `${rawText.length} chars`;
 
-        if (docStatusDot) docStatusDot.classList.add("active");
+        setChatEnabled(true);
 
         const deleteMins = resultData?.autoDeleteMinutes || 5;
         appendSystemNotification(`Indexed "${activeFile.name}" into Qdrant (${sessionPointIds.length} vectors stored, auto-deletes in ${deleteMins} min).`);
@@ -268,8 +295,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (window.qdrantAutoDeleteTimer) clearTimeout(window.qdrantAutoDeleteTimer);
         window.qdrantAutoDeleteTimer = setTimeout(() => {
           sessionPointIds = [];
-          if (docStatusDot) docStatusDot.classList.remove("active");
-          appendSystemNotification(`⏱️ ${deleteMins} minutes elapsed: All vector embeddings were automatically deleted from Qdrant.`);
+          setChatEnabled(false);
+          appendSystemNotification(`⏱️ ${deleteMins} minutes elapsed: All vector embeddings were automatically deleted from Qdrant. Upload a new PDF to ask questions.`);
         }, deleteMins * 60 * 1000);
 
         // If on mobile screen, automatically switch over to Chat tab
@@ -295,6 +322,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // --------------------------------------------------------------------------
   chatForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    if (!isDocumentLoaded) {
+      appendSystemNotification("⚠️ Please upload and index a PDF document first before asking questions.");
+      if (window.innerWidth <= 899) {
+        switchMobileTab("sidebarView");
+      }
+      return;
+    }
+
     const question = questionInput.value.trim();
     if (!question) return;
 
@@ -334,7 +370,7 @@ document.addEventListener("DOMContentLoaded", () => {
       removeElement(loadingId);
       appendMessage("ai", `⚠️ Failed to connect to server: ${err.message}`);
     } finally {
-      sendBtn.disabled = false;
+      sendBtn.disabled = !isDocumentLoaded;
       sendSpinner.classList.add("hidden");
       sendBtnText.textContent = "Ask";
     }
@@ -360,6 +396,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   window.setQuickPrompt = (promptText) => {
+    if (!isDocumentLoaded) {
+      appendSystemNotification("⚠️ Please upload and index a PDF document first before asking questions.");
+      if (window.innerWidth <= 899) {
+        switchMobileTab("sidebarView");
+      }
+      return;
+    }
     questionInput.value = promptText;
     questionInput.focus();
     if (window.innerWidth <= 899) {
@@ -387,6 +430,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         sessionPointIds = [];
+        setChatEnabled(false);
         if (window.qdrantAutoDeleteTimer) {
           clearTimeout(window.qdrantAutoDeleteTimer);
           window.qdrantAutoDeleteTimer = null;
