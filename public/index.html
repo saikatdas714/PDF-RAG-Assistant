@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Project AI - PDF RAG Assistant</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Dedicated CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="app-body">
+
+  <!-- Application Header -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-logo">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1 class="brand-title">
+          PDF RAG Assistant
+          <span class="tag-badge">Gemini + Qdrant</span>
+        </h1>
+        <p class="brand-subtitle">Vector semantic search & contextual document Q&A</p>
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <button id="endSessionBtn" class="btn-danger-outline" title="Delete all generated vectors from Qdrant and reset session">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        <span class="btn-text">Reset Session</span>
+      </button>
+
+      <div class="status-badge" title="Backend API status">
+        <span class="status-pulse"></span>
+        <span class="status-text">Online</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile View Switcher (Only active on screens <= 899px) -->
+  <nav class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav-btn active" id="tabDocBtn" data-target="sidebarView">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <span>1. Document & Upload</span>
+      <span class="mobile-indicator" id="docStatusDot"></span>
+    </button>
+    <button class="mobile-nav-btn" id="tabChatBtn" data-target="chatView">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+      </svg>
+      <span>2. AI Assistant</span>
+    </button>
+  </nav>
+
+  <!-- Main Viewport Layout (Single-Screen on Desktop, Full-View on Mobile) -->
+  <main class="main-layout">
+    
+    <!-- Left Column: Document & Knowledge Base -->
+    <aside class="sidebar-pane mobile-active" id="sidebarView">
+      <div class="panel-card">
+        
+        <!-- Sidebar Segment Controls: Upload vs Preview -->
+        <div class="panel-tabs">
+          <button class="panel-tab active" id="subtabUploadBtn">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Upload PDF
+          </button>
+          <button class="panel-tab" id="subtabPreviewBtn">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+            Extracted Text
+            <span id="charCounter" class="tab-badge">0 chars</span>
+          </button>
+        </div>
+
+        <!-- Tab 1: Upload View Content -->
+        <div class="panel-tab-content active" id="uploadTabContent">
+          <div class="dropzone-wrapper">
+            <div id="dropzone" class="dropzone">
+              <input type="file" id="fileInput" accept="application/pdf" class="hidden" />
+              <div class="dropzone-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div class="dropzone-title">Click to browse or drop PDF</div>
+              <div class="dropzone-subtitle">Supported format: PDF up to 25MB</div>
+            </div>
+
+            <!-- Selected File Banner -->
+            <div id="filePill" class="file-pill hidden">
+              <div class="file-pill-left">
+                <div class="file-icon">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="file-meta">
+                  <div id="fileNameDisplay" class="file-name">document.pdf</div>
+                  <div id="fileSizeDisplay" class="file-size">0 KB</div>
+                </div>
+              </div>
+              <button id="removeFileBtn" class="btn-icon-danger" title="Remove File">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Upload Action Button -->
+            <button id="uploadBtn" class="btn-primary" disabled>
+              <span id="uploadSpinner" class="spinner hidden"></span>
+              <span id="uploadBtnText">Upload & Index into Qdrant</span>
+            </button>
+
+            <!-- Status Notification Box -->
+            <div id="uploadStatus" class="status-box hidden"></div>
+
+            <!-- Quick Document Guidelines -->
+            <div class="doc-tips">
+              <div class="tip-title">⚡ How it works:</div>
+              <ul class="tip-list">
+                <li>Text is extracted and divided into semantic chunks.</li>
+                <li>Vectors are embedded via Gemini and stored in Qdrant.</li>
+                <li>Ask questions on the right to retrieve matched context!</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Extracted Text Content -->
+        <div class="panel-tab-content" id="previewTabContent">
+          <div class="preview-actions">
+            <span class="preview-hint">Parsed text chunks sent to Qdrant:</span>
+            <button id="copyTextBtn" class="btn-xs-ghost" title="Copy parsed text">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span id="copyBtnText">Copy</span>
+            </button>
+          </div>
+          <div id="textPreview" class="text-preview-box">No document loaded yet. Upload a PDF on the left to inspect parsed text.</div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- Right Column: Interactive Chat Interface -->
+    <section class="chat-pane" id="chatView">
+      <div class="panel-card chat-wrapper">
+        
+        <!-- Chat Header -->
+        <div class="chat-header">
+          <div class="chat-header-title">
+            <span class="chat-indicator"></span>
+            <span>Ask AI Document Assistant</span>
+          </div>
+          <div class="chat-header-actions">
+            <button id="clearChatBtn" class="btn-ghost" title="Clear conversation history">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Messages Stream -->
+        <div id="chatMessages" class="chat-messages">
+          
+          <!-- Welcome Message -->
+          <div class="msg-row ai">
+            <div class="avatar ai">AI</div>
+            <div class="msg-bubble">
+              <p><strong>Hello! 👋 Welcome to your PDF RAG Assistant.</strong></p>
+              <p>Upload any PDF document, then ask questions about it. I will search the vector index in Qdrant and generate concise, factual answers with Gemini.</p>
+              
+              <div class="pill-group">
+                <button class="quick-pill" onclick="setQuickPrompt('Give a concise 3-point summary of this document.')">
+                  📝 Summarize document
+                </button>
+                <button class="quick-pill" onclick="setQuickPrompt('What are the key takeaways and conclusions?')">
+                  💡 Key takeaways
+                </button>
+                <button class="quick-pill" onclick="setQuickPrompt('What is the main topic or objective of this text?')">
+                  🎯 Main objective
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Chat Input Area -->
+        <div class="chat-footer">
+          <form id="chatForm" class="chat-form">
+            <div class="input-wrapper">
+              <textarea
+                id="questionInput"
+                class="chat-textarea"
+                placeholder="Ask anything about the document... (Enter to send, Shift+Enter for new line)"
+                rows="1"
+              ></textarea>
+            </div>
+            <button type="submit" id="sendBtn" class="btn-send">
+              <span id="sendSpinner" class="spinner hidden"></span>
+              <span id="sendBtnText">Ask</span>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Dedicated Frontend Script -->
+  <script src="script.js"></script>
+</body>
+</html>

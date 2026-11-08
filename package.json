@@ -1,0 +1,22 @@
+{
+  "name": "project-ai",
+  "version": "1.0.0",
+  "description": "RAG API using Gemini, Qdrant, Express, and PDF parsing",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/genai": "^3.0.0",
+    "@qdrant/js-client-rest": "^1.20.0",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "multer": "^2.5.0",
+    "pdf-parse": "^2.4.5"
+  }
+}
