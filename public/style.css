@@ -215,6 +215,9 @@ html, body {
   height: 32px;
   gap: 0.35rem;
   transition: var(--transition);
+  max-width: 170px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .model-select-wrapper:hover {
@@ -237,42 +240,15 @@ html, body {
   font-weight: 500;
   cursor: pointer;
   outline: none;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .model-select option {
   background: #0f172a;
   color: var(--text-primary);
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 500;
-  padding: 0.3rem 0.6rem;
-  border-radius: 999px;
-  background: var(--success-bg);
-  border: 1px solid var(--success-border);
-  color: var(--success-text);
-  white-space: nowrap;
-  height: 32px;
-  flex-shrink: 0;
-}
-
-.status-pulse {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--success-text);
-  box-shadow: 0 0 8px var(--success-text);
-  animation: pulse 2s infinite;
-  flex-shrink: 0;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
 }
 
 /* Mobile Navigation Bar */
@@ -1033,12 +1009,12 @@ html, body {
     display: flex;
   }
 
-  /* Main layout fills remaining height below mobile nav */
+  /* Main layout fills remaining height below mobile nav flush */
   .main-layout {
     grid-template-columns: 1fr;
     height: calc(100vh - var(--header-height) - var(--mobile-nav-height));
     height: calc(100dvh - var(--header-height) - var(--mobile-nav-height));
-    padding: 0.65rem;
+    padding: 0;
     gap: 0;
   }
 
@@ -1055,7 +1031,11 @@ html, body {
   }
 
   .panel-card {
-    border-radius: var(--radius-md);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    box-shadow: none;
   }
 
   .brand-subtitle {
@@ -1066,23 +1046,29 @@ html, body {
 /* Granular Mobile Header & Ask UI Rules */
 @media (max-width: 640px) {
   :root {
-    --header-height: 54px;
+    --header-height: 52px;
     --mobile-nav-height: 42px;
   }
 
   .app-header {
-    padding: 0 0.65rem;
-    gap: 0.4rem;
+    padding: 0 0.6rem;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
+    overflow: hidden;
   }
 
   .brand-wrapper {
-    gap: 0.45rem;
+    gap: 0.4rem;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
   }
 
   .brand-logo {
     width: 28px;
     height: 28px;
     border-radius: 7px;
+    flex-shrink: 0;
   }
 
   .brand-logo svg {
@@ -1090,139 +1076,234 @@ html, body {
     height: 15px;
   }
 
+  .brand-text {
+    min-width: 0;
+    overflow: hidden;
+  }
+
   .brand-title {
     font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .tag-badge {
-    font-size: 0.6rem;
-    padding: 0.08rem 0.38rem;
+    display: none;
+  }
+
+  .brand-subtitle {
+    display: none;
   }
 
   .header-actions {
     gap: 0.35rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .model-select-wrapper {
+    height: 28px;
+    padding: 0 0.35rem 0 0.3rem;
+    gap: 0.25rem;
+    max-width: 125px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .model-select-icon {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+  }
+
+  .model-select {
+    font-size: 0.68rem;
+    max-width: 95px;
   }
 
   .btn-danger-outline {
     height: 28px;
-    padding: 0.25rem 0.45rem;
+    padding: 0 0.45rem;
     font-size: 0.68rem;
     gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .btn-danger-outline .btn-text {
+    display: none;
   }
 
   .btn-danger-outline svg {
-    width: 12px;
-    height: 12px;
-  }
-
-  .model-select-wrapper {
-  display: flex;
-  align-items: center;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 0 0.5rem 0 0.4rem;
-  height: 32px;
-  gap: 0.35rem;
-  transition: var(--transition);
-}
-
-.model-select-wrapper:hover {
-  border-color: var(--primary);
-}
-
-.model-select-icon {
-  width: 14px;
-  height: 14px;
-  color: var(--primary);
-  flex-shrink: 0;
-}
-
-.model-select {
-  background: transparent;
-  color: var(--text-primary);
-  border: none;
-  font-size: 0.72rem;
-  font-family: inherit;
-  font-weight: 500;
-  cursor: pointer;
-  outline: none;
-}
-
-.model-select option {
-  background: #0f172a;
-  color: var(--text-primary);
-}
-
-.status-badge {
-    height: 28px;
-    padding: 0.25rem 0.45rem;
-    font-size: 0.65rem;
-    gap: 0.3rem;
-  }
-
-  .status-pulse {
-    width: 6px;
-    height: 6px;
-  }
-
-  /* Ask UI Mobile Polish */
-  .chat-footer {
-    padding: 0.5rem 0.65rem;
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
-  }
-
-  .chat-form {
-    gap: 0.45rem;
-  }
-
-  /* 16px font-size prevents iOS Safari auto-zoom which breaks layouts */
-  .chat-textarea {
-    font-size: 16px !important;
-    height: 40px;
-    min-height: 40px;
-    padding: 0.55rem 0.75rem;
-    border-radius: 10px;
-  }
-
-  .btn-send {
-    height: 40px;
-    min-width: 62px;
-    padding: 0 0.75rem;
-    font-size: 0.78rem;
-    border-radius: 10px;
-  }
-
-  .btn-send svg {
     width: 13px;
     height: 13px;
   }
 
+  /* Chat Header Mobile Polish */
+  .chat-header {
+    height: 44px;
+    padding: 0 0.85rem;
+    background: rgba(11, 17, 32, 0.9);
+  }
+
+  .chat-header-title {
+    font-size: 0.84rem;
+    gap: 0.45rem;
+  }
+
+  .btn-ghost {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    height: 28px;
+  }
+
+  /* Chat Messages Stream */
   .chat-messages {
-    padding: 0.65rem;
-    gap: 0.75rem;
+    padding: 0.85rem 0.75rem;
+    gap: 0.85rem;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
 
   .msg-row {
+    max-width: 92%;
+    gap: 0.45rem;
+  }
+
+  .msg-row.user {
+    max-width: 86%;
+    align-self: flex-end;
+  }
+
+  .msg-row.user .avatar {
+    display: none; /* Hide user avatar on mobile for clean iMessage/ChatGPT look */
+  }
+
+  .msg-row.user .msg-bubble {
+    border-radius: 18px 18px 4px 18px;
+    padding: 0.65rem 0.95rem;
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  .msg-row.ai {
     max-width: 94%;
-    gap: 0.5rem;
+    align-self: flex-start;
   }
 
-  .avatar {
-    width: 24px;
-    height: 24px;
+  .msg-row.ai .avatar {
+    width: 26px;
+    height: 26px;
     font-size: 0.65rem;
-    border-radius: 5px;
+    border-radius: 50%;
+    margin-top: 2px;
+    flex-shrink: 0;
   }
 
-  .msg-bubble {
-    padding: 0.65rem 0.8rem;
-    font-size: 0.8rem;
+  .msg-row.ai .msg-bubble {
+    border-radius: 18px 18px 18px 4px;
+    padding: 0.75rem 0.95rem;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  /* Suggestion Pills in Welcome Card */
+  .pill-group {
+    margin-top: 0.65rem;
+    padding-top: 0.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    width: 100%;
   }
 
   .quick-pill {
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.74rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    white-space: normal;
+    line-height: 1.35;
+  }
+
+  /* Chat Footer / Modern Input Bar */
+  .chat-footer {
+    padding: 0.55rem 0.65rem;
+    padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+    background: rgba(11, 17, 32, 0.98);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border-color);
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+  }
+
+  .chat-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.45rem;
+    width: 100%;
+  }
+
+  .input-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* 16px font-size prevents iOS Safari auto-zoom */
+  .chat-textarea {
+    font-size: 16px !important;
+    height: 42px;
+    min-height: 42px;
+    max-height: 110px;
+    padding: 0.6rem 0.9rem;
+    border-radius: 21px;
+    line-height: 1.35;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+  }
+
+  .btn-send {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .btn-send #sendBtnText {
+    display: none; /* Icon-only send circle on mobile */
+  }
+
+  .btn-send svg {
+    width: 17px;
+    height: 17px;
+    margin: 0;
+  }
+
+  .context-details {
+    margin-top: 0.45rem;
+    padding: 0.4rem 0.65rem;
+    border-radius: 8px;
+  }
+
+  .context-summary {
+    font-size: 0.7rem;
+  }
+
+  .context-content {
+    max-height: 110px;
     font-size: 0.68rem;
-    padding: 0.25rem 0.5rem;
   }
 }
 

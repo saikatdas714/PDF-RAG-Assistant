@@ -1,4 +1,5 @@
 const fs = require("fs");
+const config = require("../config/env");
 const { extractTextFromPDF, chunkText } = require("../services/pdfService");
 const {
   embedContent,
@@ -14,6 +15,7 @@ const {
   searchSimilar,
   deletePoints,
   clearCollection,
+  getAutoDeleteStatus,
 } = require("../services/qdrantService");
 
 /**
@@ -72,10 +74,11 @@ async function handleUpload(req, res) {
 
     res.json({
       success: true,
-      message: "Successfully uploaded and indexed into Qdrant",
+      message: `Successfully uploaded and indexed into Qdrant (auto-deletes in ${config.qdrantAutoDeleteMinutes} minutes)`,
       pointIds,
       text,
       chunkCount: chunks.length,
+      autoDeleteMinutes: config.qdrantAutoDeleteMinutes,
     });
   } catch (error) {
     console.error("Error processing PDF upload:", error);
@@ -101,7 +104,9 @@ async function handleAsk(req, res) {
 
     const points = searchResult.points || [];
     if (points.length === 0) {
-      return res.status(404).json({ error: "No matching context found in vector database" });
+      return res.status(404).json({
+        error: "No matching context found. Vectors are automatically cleared from Qdrant after 5 minutes for privacy. Please re-upload your PDF.",
+      });
     }
 
     const context = points
@@ -142,7 +147,9 @@ async function handleAskStream(req, res) {
 
     const points = searchResult.points || [];
     if (points.length === 0) {
-      return res.status(404).json({ error: "No matching context found in vector database" });
+      return res.status(404).json({
+        error: "No matching context found. Vectors are automatically cleared from Qdrant after 5 minutes for privacy. Please re-upload your PDF.",
+      });
     }
 
     const context = points

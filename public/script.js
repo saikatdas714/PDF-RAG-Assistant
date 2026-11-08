@@ -262,7 +262,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (docStatusDot) docStatusDot.classList.add("active");
 
-        appendSystemNotification(`Indexed "${activeFile.name}" into Qdrant (${sessionPointIds.length} vectors stored).`);
+        const deleteMins = resultData?.autoDeleteMinutes || 5;
+        appendSystemNotification(`Indexed "${activeFile.name}" into Qdrant (${sessionPointIds.length} vectors stored, auto-deletes in ${deleteMins} min).`);
+
+        if (window.qdrantAutoDeleteTimer) clearTimeout(window.qdrantAutoDeleteTimer);
+        window.qdrantAutoDeleteTimer = setTimeout(() => {
+          sessionPointIds = [];
+          if (docStatusDot) docStatusDot.classList.remove("active");
+          appendSystemNotification(`⏱️ ${deleteMins} minutes elapsed: All vector embeddings were automatically deleted from Qdrant.`);
+        }, deleteMins * 60 * 1000);
 
         // If on mobile screen, automatically switch over to Chat tab
         if (window.innerWidth <= 899) {
@@ -379,6 +387,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         sessionPointIds = [];
+        if (window.qdrantAutoDeleteTimer) {
+          clearTimeout(window.qdrantAutoDeleteTimer);
+          window.qdrantAutoDeleteTimer = null;
+        }
         activeFile = null;
         fileInput.value = "";
         filePill.classList.add("hidden");
@@ -515,6 +527,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function scrollToBottom() {
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    requestAnimationFrame(() => {
+      chatMessages.scrollTo({
+        top: chatMessages.scrollHeight,
+        behavior: "smooth",
+      });
+    });
   }
 });

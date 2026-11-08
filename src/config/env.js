@@ -53,6 +53,7 @@ const config = {
   qdrantUrl: process.env.QDRANT_URL,
   qdrantApiKey: process.env.QDRANT_API_KEY,
   qdrantCollection: process.env.QDRANT_COLLECTION || "pdf_embed",
+  qdrantAutoDeleteMinutes: parseInt(process.env.QDRANT_AUTO_DELETE_MINUTES, 10) || 5,
 };
 
 module.exports = config;
