@@ -1,12 +1,14 @@
 const multer = require("multer");
-const fs = require("fs");
-const path = require("path");
 
-const uploadDir = path.join(__dirname, "../../uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Use memory storage for serverless environments (Vercel, AWS Lambda)
+// Prevents "EROFS: read-only file system" errors
+const storage = multer.memoryStorage();
 
-const upload = multer({ dest: uploadDir });
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25MB max file size
+  },
+});
 
 module.exports = upload;

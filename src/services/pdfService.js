@@ -2,12 +2,20 @@ const fs = require("fs");
 const { PDFParse } = require("pdf-parse");
 
 /**
- * Extract text content from a PDF file
- * @param {string} filePath
+ * Extract text content from a PDF Buffer or file path
+ * @param {Buffer | string} input
  * @returns {Promise<string>}
  */
-async function extractTextFromPDF(filePath) {
-  const buffer = fs.readFileSync(filePath);
+async function extractTextFromPDF(input) {
+  let buffer;
+  if (Buffer.isBuffer(input)) {
+    buffer = input;
+  } else if (typeof input === "string") {
+    buffer = fs.readFileSync(input);
+  } else {
+    throw new Error("Invalid PDF input: expected a Buffer or file path");
+  }
+
   const parser = new PDFParse({ data: buffer });
   const data = await parser.getText();
   return data.text || "";
@@ -23,7 +31,6 @@ async function extractTextFromPDF(filePath) {
 function chunkText(text, maxChunkSize = 500) {
   if (!text) return [];
 
-  // Normalize line endings and split into paragraphs or lines
   const rawSegments = text
     .split(/\n+/)
     .map((s) => s.trim())
@@ -37,7 +44,6 @@ function chunkText(text, maxChunkSize = 500) {
       currentChunk = currentChunk ? currentChunk + "\n" + segment : segment;
     } else {
       if (currentChunk) chunks.push(currentChunk);
-      // Handle segments longer than maxChunkSize
       if (segment.length > maxChunkSize) {
         for (let i = 0; i < segment.length; i += maxChunkSize) {
           chunks.push(segment.slice(i, i + maxChunkSize));

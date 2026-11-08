@@ -31,7 +31,24 @@ async function generateAnswer(question, context, model = config.geminiGeneration
   return response.text;
 }
 
+/**
+ * Generate streaming answer using context and Gemini model
+ * @param {string} question
+ * @param {string} context
+ * @param {string} [model]
+ * @returns {Promise<AsyncIterable<any>>}
+ */
+async function generateAnswerStream(question, context, model = config.geminiGenerationModel) {
+  const prompt = `define me ${question} using content${context} give answer less then 50 words`;
+  const stream = await ai.models.generateContentStream({
+    model,
+    contents: prompt,
+  });
+  return stream;
+}
+
 module.exports = {
   embedContent,
   generateAnswer,
+  generateAnswerStream,
 };

@@ -24,13 +24,20 @@ async function handleUpload(req, res) {
       return res.status(400).json({ error: "No PDF file provided" });
     }
 
-    const filePath = req.file.path;
+    // Support both memory buffer (serverless/Vercel) and disk path (local)
+    const fileData = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+    if (!fileData) {
+      return res.status(400).json({ error: "Could not read uploaded PDF file buffer" });
+    }
+
     const originalName = req.file.originalname || "document.pdf";
-    const text = await extractTextFromPDF(filePath);
+    const text = await extractTextFromPDF(fileData);
     const chunks = chunkText(text);
 
     if (chunks.length === 0) {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch (e) {}
+      }
       return res.status(400).json({ error: "The PDF does not contain extractable text." });
     }
 
@@ -50,12 +57,11 @@ async function handleUpload(req, res) {
     // Batch upsert into Qdrant and get generated point IDs
     const pointIds = await upsertEmbeddings(chunkEmbeddings);
 
-    // Clean up temporary uploaded file from disk
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    // Clean up temporary disk file if one was written
+    if (req.file.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
     }
 
-    // Return JSON response with pointIds and extracted text preview
     res.json({
       success: true,
       message: "Successfully uploaded and indexed into Qdrant",
@@ -65,8 +71,8 @@ async function handleUpload(req, res) {
     });
   } catch (error) {
     console.error("Error processing PDF upload:", error);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
     }
     res.status(500).json({ error: error.message || "Failed to process PDF" });
   }
@@ -116,7 +122,6 @@ async function handleClearSession(req, res) {
   try {
     let pointIds = req.body ? req.body.pointIds : null;
 
-    // Handle beacon/text format if sent via navigator.sendBeacon
     if (typeof req.body === "string" && req.body.startsWith("{")) {
       try {
         const parsed = JSON.parse(req.body);
