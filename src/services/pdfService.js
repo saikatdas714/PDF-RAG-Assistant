@@ -1,22 +1,34 @@
 const fs = require("fs");
 
-let PDFParseClass = null;
-
-function getPDFParser() {
-  if (!PDFParseClass) {
-    try {
-      const pdfModule = require("pdf-parse");
-      PDFParseClass = pdfModule.PDFParse || pdfModule;
-    } catch (err) {
-      console.error("Failed to load pdf-parse:", err);
-      throw new Error("PDF parser dependency failed to load: " + err.message);
+// Polyfill DOMMatrix for Node.js / Serverless environments if needed
+if (typeof globalThis.DOMMatrix === "undefined") {
+  class DOMMatrixPolyfill {
+    constructor() {
+      this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0;
+      this.m11 = 1; this.m12 = 0; this.m13 = 0; this.m14 = 0;
+      this.m21 = 0; this.m22 = 1; this.m23 = 0; this.m24 = 0;
+      this.m31 = 0; this.m32 = 0; this.m33 = 1; this.m34 = 0;
+      this.m41 = 0; this.m42 = 0; this.m43 = 0; this.m44 = 1;
+      this.is2D = true;
+      this.isIdentity = true;
     }
+    static fromMatrix(o) { return new DOMMatrixPolyfill(); }
+    static fromFloat32Array(a) { return new DOMMatrixPolyfill(); }
+    static fromFloat64Array(a) { return new DOMMatrixPolyfill(); }
+    multiply(o) { return this; }
+    translate(tx, ty) { return this; }
+    scale(sx, sy) { return this; }
+    rotate(deg) { return this; }
+    transformPoint(p) { return p; }
+    inverse() { return this; }
   }
-  return PDFParseClass;
+  globalThis.DOMMatrix = DOMMatrixPolyfill;
+  globalThis.DOMMatrixReadOnly = DOMMatrixPolyfill;
 }
 
 /**
  * Extract text content from a PDF Buffer or file path
+ * Works seamlessly with both pdf-parse v1 (pure JS) and v2
  * @param {Buffer | string} input
  * @returns {Promise<string>}
  */
@@ -30,10 +42,31 @@ async function extractTextFromPDF(input) {
     throw new Error("Invalid PDF input: expected a Buffer or file path");
   }
 
-  const Parser = getPDFParser();
-  const parser = new Parser({ data: buffer });
-  const data = await parser.getText();
-  return data.text || "";
+  let pdfModule;
+  try {
+    pdfModule = require("pdf-parse");
+  } catch (err) {
+    console.error("Failed to require pdf-parse:", err);
+    throw new Error("PDF parser dependency failed to load: " + err.message);
+  }
+
+  // 1. pdf-parse v1 (pure JavaScript function: pdf(buffer))
+  if (typeof pdfModule === "function") {
+    const data = await pdfModule(buffer);
+    return data && data.text ? data.text : "";
+  }
+
+  // 2. pdf-parse v2 (class syntax: new PDFParse({ data: buffer }))
+  const ParserClass = pdfModule.PDFParse || pdfModule;
+  if (typeof ParserClass === "function") {
+    const parser = new ParserClass({ data: buffer });
+    if (typeof parser.getText === "function") {
+      const data = await parser.getText();
+      return data && data.text ? data.text : "";
+    }
+  }
+
+  throw new Error("Unsupported pdf-parse module format");
 }
 
 /**
